@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class UpdatedHeroDTO {
+    private String id;
     private String name;
     private Race race;
     private Integer strength;
