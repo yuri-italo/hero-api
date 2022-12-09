@@ -38,7 +38,8 @@ public class HeroRepository {
             " WHERE id = :id";
 
     private static final String FIND_ALL_HEROES_QUERY = "SELECT *" +
-            " FROM hero";
+            " FROM hero" +
+            " ORDER BY hero.name";
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
