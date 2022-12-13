@@ -6,11 +6,11 @@ import br.com.gubee.interview.model.dto.HeroDTO;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.stream.Collectors;
-@Service
+@Repository
 @NoArgsConstructor
 @AllArgsConstructor
 public class HeroDTOAssembler {

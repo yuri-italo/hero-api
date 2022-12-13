@@ -1,8 +1,8 @@
 package br.com.gubee.interview.core.features.hero;
 
-import br.com.gubee.interview.core.assembler.HeroDTOAssembler;
-import br.com.gubee.interview.core.assembler.ResumedHeroDTOAssembler;
+import br.com.gubee.interview.core.features.powerstats.PowerStatsService;
 import br.com.gubee.interview.model.Hero;
+import br.com.gubee.interview.model.PowerStats;
 import br.com.gubee.interview.model.dto.ComparedHeroDTO;
 import br.com.gubee.interview.model.dto.HeroDTO;
 import br.com.gubee.interview.model.dto.ResumedHeroDTO;
@@ -10,10 +10,8 @@ import br.com.gubee.interview.model.dto.UpdatedHeroDTO;
 import br.com.gubee.interview.model.request.CreateHeroRequest;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -27,16 +25,18 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.ResponseEntity.created;
 
 @RestController
-@RequiredArgsConstructor
 @RequestMapping(value = "/api/v1/heroes", produces = APPLICATION_JSON_VALUE)
 public class HeroController {
     private final HeroService heroService;
-    private final HeroDTOAssembler heroDTOAssembler;
-    private final ResumedHeroDTOAssembler resumedHeroDTOAssembler;
+    private final PowerStatsService powerStatsService;
 
+    public HeroController(HeroService heroService, PowerStatsService powerStatsService) {
+        this.heroService = heroService;
+        this.powerStatsService = powerStatsService;
+    }
 
     @PostMapping(consumes = APPLICATION_JSON_VALUE)
-    @Transactional
+    //@Transactional (BUG ao usar essa TAG)
     public ResponseEntity<Void> create(@Validated @RequestBody CreateHeroRequest createHeroRequest) {
         final UUID id = heroService.create(createHeroRequest);
         return created(URI.create(format("/api/v1/heroes/%s", id))).build();
@@ -49,20 +49,35 @@ public class HeroController {
         if (heroOptional.isEmpty())
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
 
-        return ResponseEntity.ok(heroDTOAssembler.toDTO(heroOptional.get()));
+        PowerStats powerStats = powerStatsService.findById(heroOptional.get().getPowerStatsId());
+
+        return ResponseEntity.ok(new HeroDTO(heroOptional.get(),powerStats));
     }
 
     @GetMapping(value = "/search/{heroName}", produces = APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.OK)
     public List<HeroDTO> findManyByName(@PathVariable String heroName) {
-        List<Hero> heroesList = heroService.findManyByName(heroName);
-        return heroDTOAssembler.toCollectionDTO(heroesList);
+        var heroesList = heroService.findManyByName(heroName);
+        List<PowerStats> powerStatsList = new ArrayList<>();
+
+        heroesList.forEach(hero -> {
+            powerStatsList.add(powerStatsService.findById(hero.getPowerStatsId()));
+        });
+
+        return HeroDTO.toCollectionDTO(heroesList, powerStatsList);
     }
 
     @GetMapping(produces = APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.OK)
     public List<ResumedHeroDTO> list()  {
-        return resumedHeroDTOAssembler.toCollectionDTO(heroService.findAll());
+        List<Hero> heroesList = heroService.findAll();
+        List<PowerStats> powerStatsList = new ArrayList<>();
+
+        heroesList.forEach(hero -> {
+            powerStatsList.add(powerStatsService.findById(hero.getPowerStatsId()));
+        });
+
+        return ResumedHeroDTO.toCollectionDTO(heroesList,powerStatsList);
     }
 
     @GetMapping(value = "/compare",produces = APPLICATION_JSON_VALUE)
@@ -79,7 +94,7 @@ public class HeroController {
     }
 
     @PatchMapping(value = "/{heroId}", produces = APPLICATION_JSON_VALUE)
-    @Transactional
+    //@Transactional
     public ResponseEntity<?> update(@PathVariable UUID heroId, @RequestBody Map<String,Object> fields) {
         Optional<Hero> heroOptional = heroService.findById(heroId);
 
@@ -89,11 +104,13 @@ public class HeroController {
         UpdatedHeroDTO updatedHeroDTO = fieldsToDTO(fields);
         heroService.update(heroOptional.get(), updatedHeroDTO);
 
-        return ResponseEntity.status(HttpStatus.OK).body(heroDTOAssembler.toDTO(heroOptional.get()));
+        PowerStats powerStats = powerStatsService.findById(heroOptional.get().getPowerStatsId());
+
+        return ResponseEntity.status(HttpStatus.OK).body(new HeroDTO(heroOptional.get(),powerStats));
     }
 
     @DeleteMapping("/{heroId}")
-    @Transactional
+    //@Transactional
     public ResponseEntity<Void> deleteById(@PathVariable UUID heroId) {
         Optional<Hero> optionalHero = heroService.findById(heroId);
 
@@ -106,8 +123,10 @@ public class HeroController {
     }
 
     private List<ComparedHeroDTO> getComparedHeroes(Hero hero1, Hero hero2) {
-        HeroDTO heroToCompare1 = heroDTOAssembler.toDTO(hero1);
-        HeroDTO heroToCompare2 = heroDTOAssembler.toDTO(hero2);
+        PowerStats powerStats1 = powerStatsService.findById(hero1.getPowerStatsId());
+        HeroDTO heroToCompare1 = new HeroDTO(hero1, powerStats1);
+        PowerStats powerStats2 = powerStatsService.findById(hero2.getPowerStatsId());
+        HeroDTO heroToCompare2 = new HeroDTO(hero2,powerStats2);
 
         return Arrays.asList(
                 new ComparedHeroDTO(heroToCompare1, heroToCompare2),

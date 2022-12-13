@@ -6,6 +6,8 @@ import br.com.gubee.interview.model.enums.Race;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -26,5 +28,17 @@ public class ResumedHeroDTO {
         this.agility = powerStats.getAgility();
         this.dexterity = powerStats.getDexterity();
         this.intelligence = powerStats.getIntelligence();
+    }
+
+    public static List<ResumedHeroDTO> toCollectionDTO(List<Hero> heroes, List<PowerStats> powerStats) {
+        List<ResumedHeroDTO> resumedHeroDTOList = new ArrayList<>();
+        ResumedHeroDTO resumedHeroDTO;
+
+        for (int i = 0; i < heroes.size(); i++) {
+            resumedHeroDTO = new ResumedHeroDTO(heroes.get(i),powerStats.get(i));
+            resumedHeroDTOList.add(resumedHeroDTO);
+        }
+
+        return resumedHeroDTOList;
     }
 }

@@ -1,11 +1,13 @@
 package br.com.gubee.interview.model.dto;
 
 import br.com.gubee.interview.model.PowerStats;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
 public class PowerStatsDTO {
     private int strength;
     private int agility;
