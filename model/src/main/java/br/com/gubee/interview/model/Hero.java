@@ -2,10 +2,7 @@ package br.com.gubee.interview.model;
 
 import br.com.gubee.interview.model.enums.Race;
 import br.com.gubee.interview.model.request.CreateHeroRequest;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -16,9 +13,11 @@ import static lombok.AccessLevel.PRIVATE;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = PRIVATE)
+@EqualsAndHashCode
 public class Hero {
-
+    @EqualsAndHashCode.Include
     private UUID id;
+    @EqualsAndHashCode.Include
     private String name;
     private Race race;
     private UUID powerStatsId;

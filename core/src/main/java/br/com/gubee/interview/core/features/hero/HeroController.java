@@ -11,8 +11,6 @@ import br.com.gubee.interview.model.request.CreateHeroRequest;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +30,6 @@ import static org.springframework.http.ResponseEntity.created;
 @RequiredArgsConstructor
 @RequestMapping(value = "/api/v1/heroes", produces = APPLICATION_JSON_VALUE)
 public class HeroController {
-
     private final HeroService heroService;
     private final HeroDTOAssembler heroDTOAssembler;
     private final ResumedHeroDTOAssembler resumedHeroDTOAssembler;

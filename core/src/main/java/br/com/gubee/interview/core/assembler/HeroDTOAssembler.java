@@ -5,14 +5,16 @@ import br.com.gubee.interview.model.Hero;
 import br.com.gubee.interview.model.dto.HeroDTO;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
-import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
-@Component
+@Service
+@NoArgsConstructor
 @AllArgsConstructor
-//@NoArgsConstructor
 public class HeroDTOAssembler {
+    @Autowired
     private PowerStatsService powerStatsService;
 
     public HeroDTO toDTO(Hero hero) {
