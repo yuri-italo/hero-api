@@ -45,6 +45,7 @@ public class HeroServiceTest {
         Assertions.assertNotNull(heroResponseOptional.get().getPowerStatsId());
         Assertions.assertNotNull(heroResponseOptional.get().getCreatedAt());
         Assertions.assertNotNull(heroResponseOptional.get().getUpdatedAt());
+        Assertions.assertTrue(heroResponseOptional.get().isEnabled());
     }
 
     @Test
