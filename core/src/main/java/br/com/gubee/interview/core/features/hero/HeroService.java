@@ -41,9 +41,10 @@ public class HeroService {
         return heroRepository.findAll();
     }
 
-    public void update(Hero hero, UpdatedHeroDTO updateHeroDTO) {
+    public Hero update(Hero hero, UpdatedHeroDTO updateHeroDTO) {
         heroRepository.update(hero,updateHeroDTO);
         powerStatsService.update(hero.getPowerStatsId(),updateHeroDTO);
+        return hero;
     }
 
     public void delete(Hero hero) {

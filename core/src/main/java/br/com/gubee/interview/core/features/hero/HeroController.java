@@ -102,11 +102,11 @@ public class HeroController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
 
         UpdatedHeroDTO updatedHeroDTO = fieldsToDTO(fields);
-        heroService.update(heroOptional.get(), updatedHeroDTO);
+        Hero updatedHero = heroService.update(heroOptional.get(), updatedHeroDTO);
 
-        PowerStats powerStats = powerStatsService.findById(heroOptional.get().getPowerStatsId());
+        PowerStats powerStats = powerStatsService.findById(updatedHero.getPowerStatsId());
 
-        return ResponseEntity.status(HttpStatus.OK).body(new HeroDTO(heroOptional.get(),powerStats));
+        return ResponseEntity.status(HttpStatus.OK).body(new HeroDTO(updatedHero,powerStats));
     }
 
     @DeleteMapping("/{heroId}")

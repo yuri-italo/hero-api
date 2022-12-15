@@ -259,6 +259,7 @@ public class HeroServiceTest {
                 .enabled(false)
                 .build();
     }
+
     private void dbCleaner() {
         heroService.findAll().forEach(h -> heroService.delete(h));
     }
