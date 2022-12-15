@@ -28,8 +28,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(HeroController.class)
 class HeroControllerTest {
@@ -69,7 +68,6 @@ class HeroControllerTest {
 
         //then
         resultActions.andExpect(status().isCreated()).andExpect(header().exists("Location"));
-        verify(heroService, times(1)).create(any());
     }
 
     @Test
@@ -85,7 +83,6 @@ class HeroControllerTest {
 
         //then
         resultActions.andExpect(status().isBadRequest());
-        verify(heroService, never()).create(any());
     }
 
     @Test
@@ -100,9 +97,6 @@ class HeroControllerTest {
         //then
         resultActions.andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.content().json(expectedJson));
-
-        verify(heroService, times(1)).findById(heroId);
-        verify(powerStatsService,times(1)).findById(powerStatsId);
     }
 
     @Test
@@ -116,7 +110,6 @@ class HeroControllerTest {
 
         //then
         resultActions.andExpect(status().isNotFound());
-        verify(heroService, times(1)).findById(heroId);
     }
 
     @Test
@@ -138,9 +131,6 @@ class HeroControllerTest {
         //then
         resultActions.andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.content().json(expectedJson));
-
-        verify(heroService, times(1)).findManyByName(name);
-        verify(powerStatsService,times(1)).findById(powerStatsId);
     }
 
     @Test
@@ -159,9 +149,6 @@ class HeroControllerTest {
         //then
         resultActions.andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.content().json(expectedJson));
-
-        verify(heroService, times(1)).findManyByName(name);
-        verify(powerStatsService,never()).findById(powerStatsId);
     }
 
     @Test
@@ -182,9 +169,6 @@ class HeroControllerTest {
         //then
         resultActions.andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.content().json(expectedJson));
-
-        verify(heroService, times(1)).findAll();
-        verify(powerStatsService,times(1)).findById(powerStatsId);
     }
 
     @Test
@@ -204,9 +188,6 @@ class HeroControllerTest {
 
         //then
         resultActions.andExpect(status().isOk());
-
-        verify(heroService, times(2)).findByName(any());
-        verify(powerStatsService,times(2)).findById(any());
     }
 
     @Test
@@ -224,9 +205,6 @@ class HeroControllerTest {
 
         //then
         resultActions.andExpect(status().isNotFound());
-
-        verify(heroService, times(2)).findByName(any());
-        verify(powerStatsService,never()).findById(any());
     }
 
     @Test
@@ -244,9 +222,6 @@ class HeroControllerTest {
 
         //then
         resultActions.andExpect(status().isOk()).andExpect(MockMvcResultMatchers.content().json(expectedJson));;
-
-        verify(heroService, times(1)).findById(heroId);
-        verify(powerStatsService, times(1)).findById(powerStatsId);
     }
 
     @Test
@@ -263,9 +238,6 @@ class HeroControllerTest {
 
         //then
         resultActions.andExpect(status().isNotFound());
-
-        verify(heroService, times(1)).findById(heroId);
-        verify(powerStatsService, never()).findById(any());
     }
 
     @Test
@@ -281,9 +253,6 @@ class HeroControllerTest {
 
         //then
         resultActions.andExpect(status().isNoContent());
-
-        verify(heroService, times(1)).findById(heroId);
-        verify(heroService, times(1)).delete(hero);
     }
 
     @Test
@@ -299,9 +268,6 @@ class HeroControllerTest {
 
         //then
         resultActions.andExpect(status().isNotFound());
-
-        verify(heroService, times(1)).findById(heroId);
-        verify(heroService, never()).delete(any());
     }
 
     @BeforeEach
