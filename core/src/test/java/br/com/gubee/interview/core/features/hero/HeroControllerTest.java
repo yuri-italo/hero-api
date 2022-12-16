@@ -3,7 +3,6 @@ package br.com.gubee.interview.core.features.hero;
 import br.com.gubee.interview.core.features.powerstats.PowerStatsService;
 import br.com.gubee.interview.model.Hero;
 import br.com.gubee.interview.model.PowerStats;
-import br.com.gubee.interview.model.dto.UpdatedHeroDTO;
 import br.com.gubee.interview.model.enums.Race;
 import br.com.gubee.interview.model.request.CreateHeroRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,7 +18,6 @@ import java.time.Instant;
 import java.util.*;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -64,7 +62,6 @@ class HeroControllerTest {
 
         //when
         final ResultActions resultActions = mockMvc.perform(post("/api/v1/heroes")
-                .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body));
 
@@ -73,7 +70,7 @@ class HeroControllerTest {
     }
 
     @Test
-    void getById_DeveriaRetornarCode200EDadosCorretosDoHeroiNaRepostaSeIdExistir() throws Exception {
+    void getByIdDeveriaRetornarCode200EDadosCorretosDoHeroiNaRepostaSeIdExistir() throws Exception {
         //given
         UUID heroId = UUID.randomUUID();
         UUID powerStatsId = UUID.randomUUID();
@@ -85,8 +82,7 @@ class HeroControllerTest {
 
         // when
         final ResultActions resultActions = mockMvc.perform(get("/api/v1/heroes/{heroId}",heroId)
-                .accept(MediaType.APPLICATION_JSON)
-                .contentType(MediaType.APPLICATION_JSON));
+                .accept(MediaType.APPLICATION_JSON));
 
         //then
         resultActions.andExpect(status().isOk())
@@ -133,11 +129,8 @@ class HeroControllerTest {
         Hero superman = getSuperman(supermanId, powerStatsSupermanId);
         PowerStats supermanPowerStats = getBatmanPowerStats(powerStatsSupermanId);
 
-        List<Hero> heroes = Arrays.asList(batman,superman);
-
-
         // when
-        when(heroService.findManyByName(search)).thenReturn(heroes);
+        when(heroService.findManyByName(search)).thenReturn(Arrays.asList(batman,superman));
         when(powerStatsService.findById(batman.getPowerStatsId())).thenReturn(batmanPowerStats);
         when(powerStatsService.findById(superman.getPowerStatsId())).thenReturn(supermanPowerStats);
 
@@ -147,10 +140,9 @@ class HeroControllerTest {
                 .contentType(MediaType.APPLICATION_JSON));
 
         //then
-        assertEquals(2, heroes.size());
-
         resultActions.andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.size()").value(2))
                 .andExpect(jsonPath("$.[0].name", containsString(search)))
                 .andExpect(jsonPath("$.[1].name", containsString(search)));
     }
@@ -159,19 +151,17 @@ class HeroControllerTest {
     void findManyByNameDeveriaRetonarCodigo200EListaVaziaSeNaoConterHeroisComAPesquisaNoNome() throws Exception {
         //given
         String search = "man";
-        List<Hero> heroes = new ArrayList<>();
 
         // when
-        when(heroService.findManyByName(search)).thenReturn(heroes);
+        when(heroService.findManyByName(search)).thenReturn(new ArrayList<>());
 
         final ResultActions resultActions = mockMvc.perform(get("/api/v1/heroes/search/{heroName}",search)
                 .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON));
 
         //then
-        assertEquals(0,heroes.size());
-
         resultActions.andExpect(status().isOk())
+                .andExpect(jsonPath("$.size()").value(0))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON));
     }
 
@@ -182,10 +172,9 @@ class HeroControllerTest {
         UUID powerStatsId = UUID.randomUUID();
         Hero hero = getSuperman(heroId,powerStatsId);
         PowerStats powerStats = getSupermanPowerStats(powerStatsId);
-        List<Hero> heroes = List.of(hero);
 
         // when
-        when(heroService.findAll()).thenReturn(heroes);
+        when(heroService.findAll()).thenReturn(List.of(hero));
         when(powerStatsService.findById(powerStatsId)).thenReturn(powerStats);
 
         final ResultActions resultActions = mockMvc.perform(get("/api/v1/heroes/")
@@ -193,10 +182,9 @@ class HeroControllerTest {
                 .contentType(MediaType.APPLICATION_JSON));
 
         //then
-        assertEquals(1, heroes.size());
-
         resultActions.andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.size()").value(1))
                 .andExpect(jsonPath("$.[0].id").value(heroId.toString()));
     }
 
@@ -244,7 +232,7 @@ class HeroControllerTest {
     }
 
     @Test
-    void compare_DeveriaRetornarCodigo404SeNomeDeHeroiNaoExistir() throws Exception {
+    void compareDeveriaRetornarCodigo404SeNomeDeHeroiNaoExistir() throws Exception {
         //given
         String name1 = "batman";
         String name2 = "spider";
@@ -263,18 +251,34 @@ class HeroControllerTest {
     @Test
     void updateDeveriaRetornarCodigo200EDadosDeHeroiAtulizadoCasoIdExista() throws Exception {
         //given
+        Map<String, Object> updateRequest = createUpdateRequest();
         UUID heroId = UUID.randomUUID();
         UUID powerStatsId = UUID.randomUUID();
-        Hero hero = getBatman(heroId,powerStatsId);
-        PowerStats powerStats = getBatmanPowerStats(powerStatsId);
 
-        UpdatedHeroDTO updatedHeroDTO = createUpdatedHeroDTO();
-        final String body = objectMapper.writeValueAsString(updatedHeroDTO);
+        Hero hero = new Hero(
+                heroId,
+                (String) updateRequest.get("name"),
+                Race.valueOf(updateRequest.get("race").toString()),
+                powerStatsId,
+                Instant.now(),
+                Instant.now(),
+                (boolean) updateRequest.get("enabled")
+        );
 
+        PowerStats powerStats = new PowerStats(
+                powerStatsId,
+                (int) updateRequest.get("strength"),
+                (int) updateRequest.get("agility"),
+                (int) updateRequest.get("dexterity"),
+                (int) updateRequest.get("intelligence"),
+                hero.getCreatedAt(),
+                hero.getUpdatedAt()
+        );
+
+        final String body = objectMapper.writeValueAsString(updateRequest);
 
         // when
         when(heroService.findById(heroId)).thenReturn(Optional.of(hero));
-        Hero updatedHerto = heroService.update(hero, updatedHeroDTO);
         when(powerStatsService.findById(hero.getPowerStatsId())).thenReturn(powerStats);
 
         final ResultActions resultActions = mockMvc.perform(patch("/api/v1/heroes/{heroId}", heroId)
@@ -286,63 +290,67 @@ class HeroControllerTest {
         resultActions.andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.id").value(hero.getId().toString()))
-                .andExpect(jsonPath("$.name").value(hero.getName()))
-                .andExpect(jsonPath("$.race").value("$.name"))
-                .andExpect(jsonPath("$.created_at").value(hero.getCreatedAt()))
-                .andExpect(jsonPath("$.updated_at").value(hero.getUpdatedAt()))
-                .andExpect(jsonPath("$.enabled").value(hero.isEnabled()))
-                .andExpect(jsonPath("$.power_stats.strength").value(powerStats.getStrength()))
-                .andExpect(jsonPath("$.power_stats.agility").value(powerStats.getAgility()))
-                .andExpect(jsonPath("$.power_stats.dexterity").value(powerStats.getDexterity()))
-                .andExpect(jsonPath("$.power_stats.intelligence").value(powerStats.getIntelligence()));
+                .andExpect(jsonPath("$.name").value(updateRequest.get("name")))
+                .andExpect(jsonPath("$.race").value(updateRequest.get("race").toString()))
+                .andExpect(jsonPath("$.created_at").value(hero.getCreatedAt().toString()))
+                .andExpect(jsonPath("$.updated_at").value(hero.getUpdatedAt().toString()))
+                .andExpect(jsonPath("$.enabled").value(updateRequest.get("enabled")))
+                .andExpect(jsonPath("$.power_stats.strength").value(updateRequest.get("strength")))
+                .andExpect(jsonPath("$.power_stats.agility").value(updateRequest.get("agility")))
+                .andExpect(jsonPath("$.power_stats.dexterity").value(updateRequest.get("dexterity")))
+                .andExpect(jsonPath("$.power_stats.intelligence").value(updateRequest.get("intelligence")));
     }
-//
-//    @Test
-//    void update_ReturnCode404_IfHeroIdNotExists() throws Exception {
-//        //given
-//        UUID heroId = UUID.randomUUID();
-//
-//        // when
-//        when(heroService.findById(heroId)).thenReturn(Optional.empty());
-//
-//        final ResultActions resultActions = mockMvc.perform(patch("/api/v1/heroes/{heroId}", heroId)
-//                .contentType(MediaType.APPLICATION_JSON)
-//                .content(objectMapper.writeValueAsString(updatedHeroDTO)));
-//
-//        //then
-//        resultActions.andExpect(status().isNotFound());
-//    }
-//
-//    @Test
-//    void delete_ReturnCode204_IfHeroIdExists() throws Exception {
-//        //given
-//        UUID heroId = UUID.randomUUID();
-//
-//        // when
-//        when(heroService.findById(heroId)).thenReturn(Optional.of(hero));
-//
-//        final ResultActions resultActions = mockMvc.perform(delete("/api/v1/heroes/{heroId}", heroId)
-//                .contentType(MediaType.APPLICATION_JSON));
-//
-//        //then
-//        resultActions.andExpect(status().isNoContent());
-//    }
-//
-//    @Test
-//    void delete_ReturnCode404_IfHeroIdNotExists() throws Exception {
-//        //given
-//        UUID heroId = UUID.randomUUID();
-//
-//        // when
-//        when(heroService.findById(heroId)).thenReturn(Optional.empty());
-//
-//        final ResultActions resultActions = mockMvc.perform(delete("/api/v1/heroes/{heroId}", heroId)
-//                .contentType(MediaType.APPLICATION_JSON));
-//
-//        //then
-//        resultActions.andExpect(status().isNotFound());
-//    }
 
+    @Test
+    void updateDeveriaRetornarCodigo404CasoIdDoHeroiNaoExista() throws Exception {
+        //given
+        UUID heroId = UUID.randomUUID();
+        Map<String, Object> heroData = createUpdateRequest();
+        final String body = objectMapper.writeValueAsString(heroData);
+
+        // when
+        when(heroService.findById(heroId)).thenReturn(Optional.empty());
+
+        final ResultActions resultActions = mockMvc.perform(patch("/api/v1/heroes/{heroId}", heroId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body));
+
+        //then
+        resultActions.andExpect(status().isNotFound());
+    }
+
+
+    @Test
+    void deleteDeveriaRetornarCodigo204EDeletarHeroiCasoIdExista() throws Exception {
+        //given
+        UUID heroId = UUID.randomUUID();
+        UUID powerStatsId = UUID.randomUUID();
+        Hero hero = getBatman(heroId,powerStatsId);
+
+        // when
+        when(heroService.findById(heroId)).thenReturn(Optional.of(hero));
+
+        final ResultActions resultActions = mockMvc.perform(delete("/api/v1/heroes/{heroId}", heroId)
+                .contentType(MediaType.APPLICATION_JSON));
+
+        //then
+        resultActions.andExpect(status().isNoContent());
+    }
+
+    @Test
+    void deleteDeveriaRetornarCodigo404CasoIdNaoExista() throws Exception {
+        //given
+        UUID heroId = UUID.randomUUID();
+
+        // when
+        when(heroService.findById(heroId)).thenReturn(Optional.empty());
+
+        final ResultActions resultActions = mockMvc.perform(delete("/api/v1/heroes/{heroId}", heroId)
+                .contentType(MediaType.APPLICATION_JSON));
+
+        //then
+        resultActions.andExpect(status().isNotFound());
+    }
     private Hero getBatman(UUID heroId, UUID powerStatsId) {
         return new Hero(heroId,"Batman",Race.HUMAN, powerStatsId, Instant.now(),Instant.now(),true);
     }
@@ -380,15 +388,15 @@ class HeroControllerTest {
                 .build();
     }
 
-    private UpdatedHeroDTO createUpdatedHeroDTO() {
-        return UpdatedHeroDTO.builder()
-                .name("Spider-Man")
-                .agility(10)
-                .dexterity(7)
-                .strength(4)
-                .intelligence(5)
-                .race(Race.ALIEN)
-                .enabled(false)
-                .build();
+    private Map<String, Object> createUpdateRequest() {
+        Map<String, Object> heroData = new HashMap<>();
+        heroData.put("name","Rick Grimes");
+        heroData.put("race",Race.CYBORG);
+        heroData.put("strength",5);
+        heroData.put("agility",5);
+        heroData.put("dexterity",5);
+        heroData.put("intelligence",5);
+        heroData.put("enabled",false);
+        return heroData;
     }
 }
