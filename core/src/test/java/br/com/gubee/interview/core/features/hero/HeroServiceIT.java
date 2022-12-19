@@ -3,10 +3,9 @@ package br.com.gubee.interview.core.features.hero;
 import br.com.gubee.interview.core.features.powerstats.PowerStatsService;
 import br.com.gubee.interview.model.Hero;
 import br.com.gubee.interview.model.PowerStats;
-import br.com.gubee.interview.model.dto.UpdatedHeroDTO;
 import br.com.gubee.interview.model.enums.Race;
 import br.com.gubee.interview.model.request.CreateHeroRequest;
-import org.junit.jupiter.api.Assertions;
+import br.com.gubee.interview.model.request.UpdateHeroRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +15,8 @@ import org.springframework.test.context.ActiveProfiles;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -39,30 +40,41 @@ public class HeroServiceIT {
 
         // when
         UUID uuid = heroService.create(heroRequest);
-        Optional<Hero> heroOptional = heroService.findById(uuid);
-        Hero createdHero = heroOptional.get();
-        PowerStats createdPowerStats = powerStatsService.findById(createdHero.getPowerStatsId());
 
         // then
-        Assertions.assertNotNull(createdHero);
-        Assertions.assertEquals(heroRequest.getName(), createdHero.getName());
-        Assertions.assertEquals(heroRequest.getRace(), createdHero.getRace());
-        Assertions.assertEquals(heroRequest.getAgility(), createdPowerStats.getAgility());
-        Assertions.assertEquals(heroRequest.getStrength(), createdPowerStats.getStrength());
-        Assertions.assertEquals(heroRequest.getDexterity(), createdPowerStats.getDexterity());
-        Assertions.assertEquals(heroRequest.getIntelligence(), createdPowerStats.getIntelligence());
+        Optional<Hero> heroOptional = heroService.findById(uuid);
+        assertTrue(heroOptional.isPresent());
+
+        Hero createdHero = heroOptional.get();
+        assertNotNull(createdHero.getId());
+        assertEquals(heroRequest.getName(), createdHero.getName());
+        assertEquals(heroRequest.getRace(), createdHero.getRace());
+        assertTrue(createdHero.isEnabled());
+        assertNotNull(createdHero.getCreatedAt());
+        assertNotNull(createdHero.getUpdatedAt());
+
+        PowerStats createdPowerStats = powerStatsService.findById(createdHero.getPowerStatsId());
+        assertNotNull(createdPowerStats);
+        assertEquals(heroRequest.getAgility(), createdPowerStats.getAgility());
+        assertEquals(heroRequest.getStrength(), createdPowerStats.getStrength());
+        assertEquals(heroRequest.getDexterity(), createdPowerStats.getDexterity());
+        assertEquals(heroRequest.getIntelligence(), createdPowerStats.getIntelligence());
+        assertNotNull(createdPowerStats.getCreatedAt());
+        assertNotNull(createdPowerStats.getUpdatedAt());
     }
 
     @Test
-    public void createDeveriaLancarExceptionSeFaltarPropriedadesObrigatorias() {
+    public void createDeveriaLancarNullPointerExceptionSeFaltarNomeNaRequest() {
         // given
-        CreateHeroRequest heroRequestWithMissingArgument = createHeroRequestWithMissingArgument();
+        CreateHeroRequest heroRequestWithMissingArgument = createHeroRequestMissingName();
 
         // when
-        NullPointerException thrown = Assertions.assertThrows(NullPointerException.class, () -> heroService.create(heroRequestWithMissingArgument));
+        NullPointerException e = assertThrows(
+                NullPointerException.class, () -> heroService.create(heroRequestWithMissingArgument)
+        );
 
         // then
-        Assertions.assertNotNull(thrown);
+        assertNotNull(e);
     }
 
     @Test
@@ -72,11 +84,12 @@ public class HeroServiceIT {
 
         // when
         Optional<Hero> heroOptional = heroService.findById(uuid);
-        Hero requestedHero = heroOptional.get();
 
         // then
-        Assertions.assertNotNull(requestedHero);
-        Assertions.assertEquals(uuid, requestedHero.getId());
+        assertTrue(heroOptional.isPresent());
+
+        Hero requestedHero = heroOptional.get();
+        assertEquals(uuid, requestedHero.getId());
     }
 
     @Test
@@ -88,42 +101,46 @@ public class HeroServiceIT {
         Optional<Hero> heroOptional = heroService.findById(uuid);
 
         // then
-        Assertions.assertEquals(heroOptional, Optional.empty());
+        assertEquals(heroOptional, Optional.empty());
     }
 
     @Test
     public void findManyByNameDeveriaRetornarListaCom2HeroisContendoABuscaNoNome() {
         // given
         String search = "man";
-        heroService.create(createSuperManRequest());
-        heroService.create(createHeroRequest());
+        UUID uuid = heroService.create(createSuperManRequest());
+        UUID uuid2 = heroService.create(createHeroRequest());
 
         // when
         List<Hero> heroes = heroService.findManyByName(search);
-        String name1 = heroes.get(0).getName();
-        String name2 = heroes.get(1).getName();
 
         // then
-        Assertions.assertEquals(2, heroes.size());
-        Assertions.assertTrue(name1.contains(search));
-        Assertions.assertTrue(name2.contains(search));
+        Hero hero = heroService.findById(uuid).get();
+        Hero hero2 = heroService.findById(uuid2).get();
+
+        assertEquals(2, heroes.size());
+        assertTrue(hero.getName().contains(search));
+        assertTrue(hero2.getName().contains(search));
+        assertTrue(heroes.contains(hero));
+        assertTrue(heroes.contains(hero2));
     }
 
     @Test
-    public void findManyByNameDeveriaRetornarListaVaziaSeNenhumHeroiConterABuscaNoNome() {
+    public void findManyByNameDeveriaRetornarListaVaziaQuandoNenhumHeroiTemABuscaNoNome() {
         // given
         UUID uuidSuperMan = heroService.create(createSuperManRequest());
         UUID uuidBatman = heroService.create(createHeroRequest());
-        String name1 = heroService.findById(uuidSuperMan).get().getName();
-        String name2 = heroService.findById(uuidBatman).get().getName();
 
         // when
         List<Hero> heroes = heroService.findManyByName(INVALID_HERO_NAME);
 
         // then
-        Assertions.assertEquals(0, heroes.size());
-        Assertions.assertFalse(name1.contains(INVALID_HERO_NAME));
-        Assertions.assertFalse(name2.contains(INVALID_HERO_NAME));
+        Hero hero = heroService.findById(uuidSuperMan).get();
+        Hero hero2 = heroService.findById(uuidBatman).get();
+
+        assertEquals(0, heroes.size());
+        assertFalse(hero.getName().contains(INVALID_HERO_NAME));
+        assertFalse(hero2.getName().contains(INVALID_HERO_NAME));
     }
 
     @Test
@@ -134,11 +151,11 @@ public class HeroServiceIT {
 
         // when
         Optional<Hero> heroOptional = heroService.findByName(search);
-        Hero hero = heroOptional.get();
 
         // then
-        Assertions.assertNotNull(hero);
-        Assertions.assertEquals(search, hero.getName());
+        Hero hero = heroOptional.get();
+        assertNotNull(hero);
+        assertEquals(search, hero.getName());
     }
 
     @Test
@@ -151,8 +168,8 @@ public class HeroServiceIT {
         Optional<Hero> heroOptional = heroService.findByName(INVALID_HERO_NAME);
 
         // then
-        Assertions.assertTrue(heroOptional.isEmpty());
-        Assertions.assertNotEquals(INVALID_HERO_NAME, hero.getName());
+        assertTrue(heroOptional.isEmpty());
+        assertNotEquals(INVALID_HERO_NAME, hero.getName());
     }
 
     @Test
@@ -161,8 +178,8 @@ public class HeroServiceIT {
         List<Hero> heroes = heroService.findAll();
 
         // then
-        Assertions.assertNotNull(heroes);
-        Assertions.assertEquals(0, heroes.size());
+        assertNotNull(heroes);
+        assertEquals(0, heroes.size());
     }
 
     @Test
@@ -175,45 +192,48 @@ public class HeroServiceIT {
         List<Hero> heroes = heroService.findAll();
 
         // then
-        Assertions.assertNotNull(heroes);
-        Assertions.assertEquals(2, heroes.size());
-        Assertions.assertEquals(heroId, heroes.get(0).getId());
-        Assertions.assertEquals(heroId2, heroes.get(1).getId());
+        assertNotNull(heroes);
+        assertEquals(2, heroes.size());
+        assertEquals(heroId, heroes.get(0).getId());
+        assertEquals(heroId2, heroes.get(1).getId());
     }
 
-//    @Test
-//    public void update_DeveriaAtualizarDadosDoHeroi() {
-//        // given
-//        UUID uuid = heroService.create(createHeroRequest());
-//        Hero hero = heroService.findById(uuid).get();
-//        UpdatedHeroDTO updatedHeroDTO = createUpdatedHeroDTO();
-//
-//        // when
-//        heroService.update(hero,updatedHeroDTO);
-//        PowerStats powerStats = powerStatsService.findById(hero.getPowerStatsId());
-//
-//        // then
-//        Assertions.assertEquals(updatedHeroDTO.getName(), hero.getName());
-//        Assertions.assertEquals(updatedHeroDTO.getRace(), hero.getRace());
-//        Assertions.assertEquals(updatedHeroDTO.getEnabled(), hero.isEnabled());
-//        Assertions.assertEquals(updatedHeroDTO.getAgility(), powerStats.getAgility());
-//        Assertions.assertEquals(updatedHeroDTO.getDexterity(), powerStats.getDexterity());
-//        Assertions.assertEquals(updatedHeroDTO.getIntelligence(), powerStats.getIntelligence());
-//        Assertions.assertEquals(updatedHeroDTO.getStrength(), powerStats.getStrength());
-//    }
+    @Test
+    public void update_DeveriaAtualizarDadosDoHeroi() {
+        // given
+        UUID uuid = heroService.create(createHeroRequest());
+        Hero hero = heroService.findById(uuid).get();
+        UpdateHeroRequest updatedHeroRequest = createUpdatedHeroRequest();
+
+        // when
+        heroService.update(hero,updatedHeroRequest);
+
+        // then
+        PowerStats powerStats = powerStatsService.findById(hero.getPowerStatsId());
+        assertEquals(updatedHeroRequest.getName(), hero.getName());
+        assertEquals(updatedHeroRequest.getRace(), hero.getRace());
+        assertEquals(updatedHeroRequest.getEnabled(), hero.isEnabled());
+        assertEquals(updatedHeroRequest.getAgility(), powerStats.getAgility());
+        assertEquals(updatedHeroRequest.getDexterity(), powerStats.getDexterity());
+        assertEquals(updatedHeroRequest.getIntelligence(), powerStats.getIntelligence());
+        assertEquals(updatedHeroRequest.getStrength(), powerStats.getStrength());
+    }
 
     @Test
-    public void deleteDeveriaDeletarHeroiSeIdExistir() {
+    public void deleteDeveriaDeletarHeroiSeHeroExistir() {
         // given
         UUID uuid = heroService.create(createHeroRequest());
         Hero hero = heroService.findById(uuid).get();
 
         // when
         heroService.delete(hero);
-        Optional<Hero> heroOptional = heroService.findById(uuid);
 
         // then
-        Assertions.assertTrue(heroOptional.isEmpty());
+        Optional<Hero> heroOptional = heroService.findById(uuid);
+        assertTrue(heroOptional.isEmpty());
+
+        PowerStats powerStats = powerStatsService.findById(hero.getPowerStatsId());
+        assertNull(powerStats);
     }
 
     private CreateHeroRequest createHeroRequest() {
@@ -239,7 +259,7 @@ public class HeroServiceIT {
     }
 
 
-    private CreateHeroRequest createHeroRequestWithMissingArgument() {
+    private CreateHeroRequest createHeroRequestMissingName() {
         return CreateHeroRequest.builder()
                 .agility(5)
                 .dexterity(8)
@@ -249,8 +269,8 @@ public class HeroServiceIT {
                 .build();
     }
 
-    private UpdatedHeroDTO createUpdatedHeroDTO() {
-        return UpdatedHeroDTO.builder()
+    private UpdateHeroRequest createUpdatedHeroRequest() {
+        return UpdateHeroRequest.builder()
                 .name("Spider-Man")
                 .agility(10)
                 .dexterity(7)
