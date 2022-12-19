@@ -6,8 +6,8 @@ import br.com.gubee.interview.model.PowerStats;
 import br.com.gubee.interview.model.dto.ComparedHeroDTO;
 import br.com.gubee.interview.model.dto.HeroDTO;
 import br.com.gubee.interview.model.dto.ResumedHeroDTO;
-import br.com.gubee.interview.model.dto.UpdatedHeroDTO;
 import br.com.gubee.interview.model.request.CreateHeroRequest;
+import br.com.gubee.interview.model.request.UpdateHeroRequest;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
@@ -101,8 +101,8 @@ public class HeroController {
         if (heroOptional.isEmpty())
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
 
-        UpdatedHeroDTO updatedHeroDTO = fieldsToDTO(fields);
-        heroService.update(heroOptional.get(), updatedHeroDTO);
+        UpdateHeroRequest updateHeroRequest = fieldsToDTO(fields);
+        heroService.update(heroOptional.get(), updateHeroRequest);
 
         PowerStats powerStats = powerStatsService.findById(heroOptional.get().getPowerStatsId());
 
@@ -135,16 +135,16 @@ public class HeroController {
     }
 
 
-    private UpdatedHeroDTO fieldsToDTO(Map<String, Object> fields) {
+    private UpdateHeroRequest fieldsToDTO(Map<String, Object> fields) {
         ObjectMapper heroMapper = new ObjectMapper();
         heroMapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES,true);
         //heroMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,true);
 
-        UpdatedHeroDTO heroDTOInput = heroMapper.convertValue(fields, UpdatedHeroDTO.class);
-        UpdatedHeroDTO heroDTO = new UpdatedHeroDTO();
+        UpdateHeroRequest heroDTOInput = heroMapper.convertValue(fields, UpdateHeroRequest.class);
+        UpdateHeroRequest updateHeroRequest = new UpdateHeroRequest();
 
         fields.forEach((key, value) -> {
-            Field heroField = ReflectionUtils.findField(UpdatedHeroDTO.class, key);
+            Field heroField = ReflectionUtils.findField(UpdateHeroRequest.class, key);
             if (heroField != null)
                 heroField.setAccessible(true);
 
@@ -153,9 +153,9 @@ public class HeroController {
                 newValue = ReflectionUtils.getField(heroField, heroDTOInput);
 
             if (heroField != null)
-                ReflectionUtils.setField(heroField,heroDTO,newValue);
+                ReflectionUtils.setField(heroField,updateHeroRequest,newValue);
         });
 
-        return heroDTO;
+        return updateHeroRequest;
     }
 }

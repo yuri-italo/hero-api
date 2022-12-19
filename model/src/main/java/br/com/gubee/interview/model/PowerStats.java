@@ -1,10 +1,7 @@
 package br.com.gubee.interview.model;
 
 import br.com.gubee.interview.model.request.CreateHeroRequest;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -17,6 +14,7 @@ import static lombok.AccessLevel.PRIVATE;
 @Builder
 public class PowerStats {
 
+    @EqualsAndHashCode.Include
     private UUID id;
     private int strength;
     private int agility;

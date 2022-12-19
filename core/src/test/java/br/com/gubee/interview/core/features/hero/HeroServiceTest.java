@@ -1,245 +1,139 @@
 package br.com.gubee.interview.core.features.hero;
 
+import br.com.gubee.interview.core.features.hero.impl.HeroRepositoryInMemoryImpl;
 import br.com.gubee.interview.core.features.powerstats.PowerStatsService;
+import br.com.gubee.interview.core.features.powerstats.impl.PowerStatsRepositoryInMemoryImpl;
 import br.com.gubee.interview.model.Hero;
 import br.com.gubee.interview.model.PowerStats;
-import br.com.gubee.interview.model.dto.UpdatedHeroDTO;
 import br.com.gubee.interview.model.enums.Race;
 import br.com.gubee.interview.model.request.CreateHeroRequest;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
-public class HeroServiceTest {
+import static org.junit.jupiter.api.Assertions.*;
 
-    @Autowired
-    private HeroService heroService;
-    @Autowired
-    private PowerStatsService powerStatsService;
-    private final String INVALID_HERO_NAME = "invalid_hero_name";
-
-    @BeforeEach
-    public void setUp() {
-        dbCleaner();
-    }
+class HeroServiceTest {
 
     @Test
-    public void createDeveriaCriarHeroiSeTodasPropriedadesObrigatoriasForemPassadas() {
+    void createShouldCreateANewHeroContainingTheRequestProperties() {
         // given
-        CreateHeroRequest heroRequest = createHeroRequest();
+        HeroRepositoryInMemoryImpl heroRepositoryInMemory = new HeroRepositoryInMemoryImpl();
+        PowerStatsRepositoryInMemoryImpl powerStatsRepositoryInMemory = new PowerStatsRepositoryInMemoryImpl();
+        PowerStatsService powerStatsService = new PowerStatsService(powerStatsRepositoryInMemory);
+        HeroService heroService = new HeroService(heroRepositoryInMemory,powerStatsService);
+        CreateHeroRequest request = createHeroRequest();
 
         // when
-        UUID uuid = heroService.create(heroRequest);
-        Optional<Hero> heroOptional = heroService.findById(uuid);
-        Hero createdHero = heroOptional.get();
+        UUID uuid = heroService.create(request);
+
+        // then
+        assertNotNull(uuid);
+
+        Optional<Hero> optionalHero = heroRepositoryInMemory.findById(uuid);
+        assertTrue(optionalHero.isPresent());
+
+        Hero createdHero = optionalHero.get();
+        assertNotNull(createdHero.getId());
+        assertEquals(request.getName(), createdHero.getName());
+        assertEquals(request.getRace(), createdHero.getRace());
+        assertTrue(createdHero.isEnabled());
+        assertNotNull(createdHero.getCreatedAt());
+        assertNotNull(createdHero.getUpdatedAt());
+        assertNotNull(createdHero.getPowerStatsId());
+
         PowerStats createdPowerStats = powerStatsService.findById(createdHero.getPowerStatsId());
-
-        // then
-        Assertions.assertNotNull(createdHero);
-        Assertions.assertEquals(heroRequest.getName(), createdHero.getName());
-        Assertions.assertEquals(heroRequest.getRace(), createdHero.getRace());
-        Assertions.assertEquals(heroRequest.getAgility(), createdPowerStats.getAgility());
-        Assertions.assertEquals(heroRequest.getStrength(), createdPowerStats.getStrength());
-        Assertions.assertEquals(heroRequest.getDexterity(), createdPowerStats.getDexterity());
-        Assertions.assertEquals(heroRequest.getIntelligence(), createdPowerStats.getIntelligence());
+        assertNotNull(createdPowerStats);
+        assertNotNull(createdPowerStats.getId());
+        assertEquals(request.getAgility(),createdPowerStats.getAgility());
+        assertEquals(request.getDexterity(),createdPowerStats.getDexterity());
+        assertEquals(request.getIntelligence(),createdPowerStats.getIntelligence());
+        assertEquals(request.getStrength(),createdPowerStats.getStrength());
+        assertNotNull(createdPowerStats.getCreatedAt());
+        assertNotNull(createdPowerStats.getUpdatedAt());
     }
 
     @Test
-    public void createDeveriaLancarExceptionSeFaltarPropriedadesObrigatorias() {
+    void findByIdShouldReturnAnOptionalWithTheCorrectHeroWhenIdExists() {
         // given
-        CreateHeroRequest heroRequestWithMissingArgument = createHeroRequestWithMissingArgument();
+        HeroRepositoryInMemoryImpl heroRepositoryInMemory = new HeroRepositoryInMemoryImpl();
+        PowerStatsRepositoryInMemoryImpl powerStatsRepositoryInMemory = new PowerStatsRepositoryInMemoryImpl();
+        PowerStatsService powerStatsService = new PowerStatsService(powerStatsRepositoryInMemory);
+        HeroService heroService = new HeroService(heroRepositoryInMemory,powerStatsService);
+        CreateHeroRequest request = createHeroRequest();
+
+        UUID uuid = heroService.create(request);
 
         // when
-        NullPointerException thrown = Assertions.assertThrows(NullPointerException.class, () -> heroService.create(heroRequestWithMissingArgument));
+        Optional<Hero> optionalHero = heroService.findById(uuid);
 
         // then
-        Assertions.assertNotNull(thrown);
+        assertTrue(optionalHero.isPresent());
+
+        Hero createdHero = optionalHero.get();
+        assertNotNull(createdHero.getId());
+        assertEquals(request.getName(), createdHero.getName());
+        assertEquals(request.getRace(), createdHero.getRace());
+        assertTrue(createdHero.isEnabled());
+        assertNotNull(createdHero.getCreatedAt());
+        assertNotNull(createdHero.getUpdatedAt());
+        assertNotNull(createdHero.getPowerStatsId());
+
+        PowerStats createdPowerStats = powerStatsService.findById(createdHero.getPowerStatsId());
+        assertNotNull(createdPowerStats);
+        assertNotNull(createdPowerStats.getId());
+        assertEquals(request.getAgility(),createdPowerStats.getAgility());
+        assertEquals(request.getDexterity(),createdPowerStats.getDexterity());
+        assertEquals(request.getIntelligence(),createdPowerStats.getIntelligence());
+        assertEquals(request.getStrength(),createdPowerStats.getStrength());
+        assertNotNull(createdPowerStats.getCreatedAt());
+        assertNotNull(createdPowerStats.getUpdatedAt());
     }
 
     @Test
-    public void findByIdDeveriaRetonarOptionalDeHeroiSeIdExistir() {
+    void findManyByNameShouldReturnAListWithTwoHeroesContainingTheSearchInTheName() {
         // given
-        UUID uuid = heroService.create(createHeroRequest());
+        HeroRepositoryInMemoryImpl heroRepositoryInMemory = new HeroRepositoryInMemoryImpl();
+        PowerStatsRepositoryInMemoryImpl powerStatsRepositoryInMemory = new PowerStatsRepositoryInMemoryImpl();
+        PowerStatsService powerStatsService = new PowerStatsService(powerStatsRepositoryInMemory);
+        HeroService heroService = new HeroService(heroRepositoryInMemory,powerStatsService);
+        CreateHeroRequest request = createHeroRequest();
+        CreateHeroRequest request2 = createAnotherHeroRequest();
 
-        // when
-        Optional<Hero> heroOptional = heroService.findById(uuid);
-        Hero requestedHero = heroOptional.get();
+        UUID uuid = heroService.create(request);
+        UUID uuid2 = heroService.create(request2);
 
-        // then
-        Assertions.assertNotNull(requestedHero);
-        Assertions.assertEquals(uuid, requestedHero.getId());
-    }
-
-    @Test
-    public void findByIdDeveriaRetornarEmptyOptionalSeIdNaoExistir() {
-        // given
-        UUID uuid = UUID.randomUUID();
-
-        // when
-        Optional<Hero> heroOptional = heroService.findById(uuid);
-
-        // then
-        Assertions.assertEquals(heroOptional, Optional.empty());
-    }
-
-    @Test
-    public void findManyByNameDeveriaRetornarListaCom2HeroisContendoABuscaNoNome() {
-        // given
         String search = "man";
-        heroService.create(createSuperManRequest());
-        heroService.create(createHeroRequest());
 
         // when
         List<Hero> heroes = heroService.findManyByName(search);
-        String name1 = heroes.get(0).getName();
-        String name2 = heroes.get(1).getName();
 
         // then
-        Assertions.assertEquals(2, heroes.size());
-        Assertions.assertTrue(name1.contains(search));
-        Assertions.assertTrue(name2.contains(search));
+        assertNotNull(heroes);
+
     }
 
     @Test
-    public void findManyByNameDeveriaRetornarListaVaziaSeNenhumHeroiConterABuscaNoNome() {
-        // given
-        UUID uuidSuperMan = heroService.create(createSuperManRequest());
-        UUID uuidBatman = heroService.create(createHeroRequest());
-        String name1 = heroService.findById(uuidSuperMan).get().getName();
-        String name2 = heroService.findById(uuidBatman).get().getName();
-
-        // when
-        List<Hero> heroes = heroService.findManyByName(INVALID_HERO_NAME);
-
-        // then
-        Assertions.assertEquals(0, heroes.size());
-        Assertions.assertFalse(name1.contains(INVALID_HERO_NAME));
-        Assertions.assertFalse(name2.contains(INVALID_HERO_NAME));
+    void findByName() {
     }
 
     @Test
-    public void findByNameDeveriaRetornarOptionalDeHeroSeNomeForIgualAPesquisa() {
-        // given
-        String search = "Batman";
-        heroService.create(createHeroRequest());
-
-        // when
-        Optional<Hero> heroOptional = heroService.findByName(search);
-        Hero hero = heroOptional.get();
-
-        // then
-        Assertions.assertNotNull(hero);
-        Assertions.assertEquals(search, hero.getName());
+    void findAll() {
     }
 
     @Test
-    public void findByNameDeveriaRetornarEmptyOptionalSeNomeForDiferenteDaPesquisa() {
-        // given
-        UUID uuid = heroService.create(createHeroRequest());
-        Hero hero = heroService.findById(uuid).get();
-
-        // when
-        Optional<Hero> heroOptional = heroService.findByName(INVALID_HERO_NAME);
-
-        // then
-        Assertions.assertTrue(heroOptional.isEmpty());
-        Assertions.assertNotEquals(INVALID_HERO_NAME, hero.getName());
+    void update() {
     }
 
     @Test
-    public void findAll_DeveriaRetornarListaSemNenhumHeroiCasoNaoTenhaHeroisCadastrados() {
-        //given
-        List<Hero> heroes = heroService.findAll();
-
-        // then
-        Assertions.assertNotNull(heroes);
-        Assertions.assertEquals(0, heroes.size());
-    }
-
-    @Test
-    public void findAll_DeveriaRetornarListComTodosHerois() {
-        //given
-        UUID heroId = heroService.create(createHeroRequest());
-        UUID heroId2 = heroService.create(createSuperManRequest());
-
-        // when
-        List<Hero> heroes = heroService.findAll();
-
-        // then
-        Assertions.assertNotNull(heroes);
-        Assertions.assertEquals(2, heroes.size());
-        Assertions.assertEquals(heroId, heroes.get(0).getId());
-        Assertions.assertEquals(heroId2, heroes.get(1).getId());
-    }
-
-    @Test
-    public void update_DeveriaAtualizarDadosDoHeroi() {
-        // given
-        UUID uuid = heroService.create(createHeroRequest());
-        Hero hero = heroService.findById(uuid).get();
-        UpdatedHeroDTO updatedHeroDTO = createUpdatedHeroDTO();
-
-        // when
-        heroService.update(hero,updatedHeroDTO);
-        PowerStats powerStats = powerStatsService.findById(hero.getPowerStatsId());
-
-        // then
-        Assertions.assertEquals(updatedHeroDTO.getName(), hero.getName());
-        Assertions.assertEquals(updatedHeroDTO.getRace(), hero.getRace());
-        Assertions.assertEquals(updatedHeroDTO.getEnabled(), hero.isEnabled());
-        Assertions.assertEquals(updatedHeroDTO.getAgility(), powerStats.getAgility());
-        Assertions.assertEquals(updatedHeroDTO.getDexterity(), powerStats.getDexterity());
-        Assertions.assertEquals(updatedHeroDTO.getIntelligence(), powerStats.getIntelligence());
-        Assertions.assertEquals(updatedHeroDTO.getStrength(), powerStats.getStrength());
-    }
-
-    @Test
-    public void deleteDeveriaDeletarHeroiSeIdExistir() {
-        // given
-        UUID uuid = heroService.create(createHeroRequest());
-        Hero hero = heroService.findById(uuid).get();
-
-        // when
-        heroService.delete(hero);
-        Optional<Hero> heroOptional = heroService.findById(uuid);
-
-        // then
-        Assertions.assertTrue(heroOptional.isEmpty());
+    void delete() {
     }
 
     private CreateHeroRequest createHeroRequest() {
         return CreateHeroRequest.builder()
-            .name("Batman")
-            .agility(5)
-            .dexterity(8)
-            .strength(6)
-            .intelligence(10)
-            .race(Race.HUMAN)
-            .build();
-    }
-    private CreateHeroRequest createSuperManRequest() {
-        return CreateHeroRequest.builder()
-                .name("Superman")
-                .agility(10)
-                .dexterity(10)
-                .strength(10)
-                .intelligence(10)
-                .race(Race.DIVINE)
-                .build();
-    }
-
-
-    private CreateHeroRequest createHeroRequestWithMissingArgument() {
-        return CreateHeroRequest.builder()
+                .name("Batman")
                 .agility(5)
                 .dexterity(8)
                 .strength(6)
@@ -248,19 +142,14 @@ public class HeroServiceTest {
                 .build();
     }
 
-    private UpdatedHeroDTO createUpdatedHeroDTO() {
-        return UpdatedHeroDTO.builder()
-                .name("Spider-Man")
+    private CreateHeroRequest createAnotherHeroRequest() {
+        return CreateHeroRequest.builder()
+                .name("Superman")
                 .agility(10)
-                .dexterity(7)
-                .strength(4)
-                .intelligence(5)
-                .race(Race.ALIEN)
-                .enabled(false)
+                .dexterity(10)
+                .strength(10)
+                .intelligence(10)
+                .race(Race.DIVINE)
                 .build();
-    }
-
-    private void dbCleaner() {
-        heroService.findAll().forEach(h -> heroService.delete(h));
     }
 }

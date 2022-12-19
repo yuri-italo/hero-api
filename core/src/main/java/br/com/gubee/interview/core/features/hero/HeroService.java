@@ -3,8 +3,8 @@ package br.com.gubee.interview.core.features.hero;
 import br.com.gubee.interview.core.features.powerstats.PowerStatsService;
 import br.com.gubee.interview.model.Hero;
 import br.com.gubee.interview.model.PowerStats;
-import br.com.gubee.interview.model.dto.UpdatedHeroDTO;
 import br.com.gubee.interview.model.request.CreateHeroRequest;
+import br.com.gubee.interview.model.request.UpdateHeroRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +16,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class HeroService {
-
     private final HeroRepository heroRepository;
     private final PowerStatsService powerStatsService;
 
@@ -41,9 +40,9 @@ public class HeroService {
         return heroRepository.findAll();
     }
 
-    public void update(Hero hero, UpdatedHeroDTO updateHeroDTO) {
-        heroRepository.update(hero,updateHeroDTO);
-        powerStatsService.update(hero.getPowerStatsId(),updateHeroDTO);
+    public void update(Hero hero, UpdateHeroRequest updateHeroRequest) {
+        heroRepository.update(hero,updateHeroRequest);
+        powerStatsService.update(hero.getPowerStatsId(),updateHeroRequest);
     }
 
     public void delete(Hero hero) {

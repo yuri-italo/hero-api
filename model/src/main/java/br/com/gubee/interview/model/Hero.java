@@ -15,14 +15,25 @@ import static lombok.AccessLevel.PRIVATE;
 @NoArgsConstructor(access = PRIVATE)
 @EqualsAndHashCode
 public class Hero {
-    @EqualsAndHashCode.Include
+    @EqualsAndHashCode.Exclude
     private UUID id;
+
     @EqualsAndHashCode.Include
     private String name;
+
+    @EqualsAndHashCode.Exclude
     private Race race;
+
+    @EqualsAndHashCode.Exclude
     private UUID powerStatsId;
+
+    @EqualsAndHashCode.Exclude
     private Instant createdAt;
+
+    @EqualsAndHashCode.Exclude
     private Instant updatedAt;
+
+    @EqualsAndHashCode.Exclude
     private boolean enabled;
 
     public Hero(CreateHeroRequest createHeroRequest, UUID powerStatsId) {
